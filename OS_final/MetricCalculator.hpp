@@ -1,14 +1,15 @@
-#ifndef METRIC_CALCULATOR_H
-#define METRIC_CALCULATOR_H
+#ifndef METRICCALCULATOR_HPP
+#define METRICCALCULATOR_HPP
 
+#include "graph.hpp"
 #include "MST.hpp"
 
 class MetricCalculator {
 public:
-    static double calculateTotalWeight(const MST& mst);
-    static double calculateLongestDistance(const MST& mst);
-    static double calculateAverageDistance(const MST& mst);
-    static double calculateShortestDistance(const MST& mst);
+    static int calculateTotalWeight(const MST& mst);
+    static int calculateLongestDistance(const Graph& graph, const MST& mst);
+    static double calculateAverageDistance(const Graph& graph);
+    static int calculateShortestDistanceInMST(const Graph& graph, const MST& mst, int u, int v);
 };
 
-#endif
+#endif // METRICCALCULATOR_HPP

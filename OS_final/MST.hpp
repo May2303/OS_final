@@ -2,13 +2,12 @@
 #define MST_H
 
 #include "graph.hpp"
+#include <vector>
 
 class MST {
 public:
-    virtual double getTotalWeight() = 0;
-    virtual double getLongestDistance() = 0;
-    virtual double getAverageDistance() = 0;
-    virtual double getShortestDistance() = 0;
+    virtual ~MST() = default;
+    virtual std::vector<std::pair<int, int>> calculateMST(const Graph& graph) const = 0;
 };
 
-#endif
+#endif // MST_H
