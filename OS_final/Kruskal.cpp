@@ -4,64 +4,70 @@
 #include "MSTAlgorithms.hpp" 
 #include <numeric>
 
-using namespace std;
 
-// Structure to represent an edge in the graph
-struct Edge {
-    int u, v, weight; // The vertices connected by the edge and its weight
-
-    // Overload the less-than operator for sorting edges based on their weights
-    bool operator<(const Edge& e) const {
-        return weight < e.weight; // Compare edges by weight
-    }
-};
-
-// Find the representative (or root) of the set containing vertex u
-int findParent(int u, vector<int>& parent) {
+// Helper function to find the representative (or root) of the set containing vertex u
+int findParent(int u, std::vector<int>& parent) {
     if (parent[u] != u) {
-        // Path compression: make the tree flatter for efficiency
-        parent[u] = findParent(parent[u], parent);
+        parent[u] = findParent(parent[u], parent); // Path compression
     }
-    return parent[u]; // Return the root of the set
+    return parent[u];
 }
 
-
-// Union the sets containing vertices u and v
-void unionSets(int u, int v, vector<int>& parent, vector<int>& rank) {
-    int rootU = findParent(u, parent); // Find root of u
-    int rootV = findParent(v, parent); // Find root of v
+// Helper function to union the sets containing vertices u and v
+void unionSets(int u, int v, std::vector<int>& parent, std::vector<int>& rank) {
+    int rootU = findParent(u, parent);
+    int rootV = findParent(v, parent);
 
     if (rootU != rootV) {
-        // Union by rank: attach the smaller tree under the larger tree
         if (rank[rootU] > rank[rootV]) {
-            parent[rootV] = rootU; // Attach rootV's tree under rootU's tree
+            parent[rootV] = rootU;
         } else if (rank[rootU] < rank[rootV]) {
-            parent[rootU] = rootV; // Attach rootU's tree under rootV's tree
+            parent[rootU] = rootV;
         } else {
-            parent[rootV] = rootU; // Arbitrarily choose rootU as new root
-            rank[rootU]++; // Increase the rank of the new root
+            parent[rootV] = rootU;
+            rank[rootU]++;
         }
     }
 }
 
+// Define the compute method for Kruskal's algorithm
+std::vector<std::pair<int, int>> KruskalAlgorithm::play_mst(int n, const std::vector<std::vector<Edge>>& adj) {
+    std::vector<Edge> edgeList;
 
-// Kruskal's algorithm to find the Minimum Spanning Tree (MST)
-vector<Edge> kruskal(int n, vector<Edge>& edges) {
-    vector<Edge> mstEdges; // To store the edges of the MST
-    vector<int> parent(n + 1), rank(n + 1, 0); // Initialize parent and rank for Union-Find
-
-    iota(parent.begin(), parent.end(), 0); // Initialize parent array to self (each node is its own parent)
-    sort(edges.begin(), edges.end()); // Sort all edges in non-decreasing order of their weight
-
-    // Process each edge in sorted order
-    for (const Edge& e : edges) {
-        int u = e.u, v = e.v; // Get vertices of the edge
-        if (findParent(u, parent) != findParent(v, parent)) {
-            // If u and v are not in the same set, include this edge in the MST
-            unionSets(u, v, parent, rank); // Union the sets containing u and v
-            mstEdges.push_back(e); // Add edge to MST
+    // Convert adjacency list to a list of edges
+    for (int i = 0; i < n; ++i) {
+        for (const Edge& e : adj[i]) {
+            if (i < e.v) {
+                edgeList.push_back(e);
+            }
         }
     }
 
-    return mstEdges; // Return the edges of the MST
+    std::vector<Edge> mstEdges;
+    std::vector<int> parent(n);
+    std::vector<int> rank(n, 0);
+
+    // Initialize Union-Find data structure
+    std::iota(parent.begin(), parent.end(), 0); // parent[i] = i
+
+    // Sort all edges in non-decreasing order of their weight
+    std::sort(edgeList.begin(), edgeList.end());
+
+    // Process each edge in sorted order
+    for (const Edge& e : edgeList) {
+        int u = e.u;
+        int v = e.v;
+        if (findParent(u, parent) != findParent(v, parent)) {
+            unionSets(u, v, parent, rank);
+            mstEdges.push_back(e);
+        }
+    }
+
+    // Convert edge list to a list of pairs for the result
+    std::vector<std::pair<int, int>> mstPairs;
+    for (const Edge& e : mstEdges) {
+        mstPairs.emplace_back(e.u, e.v);
+    }
+    
+    return mstPairs;
 }
