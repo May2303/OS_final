@@ -2,6 +2,7 @@
 #include <vector>      
 #include <algorithm>   
 #include "MSTAlgorithms.hpp" 
+#include <numeric>
 
 using namespace std;
 

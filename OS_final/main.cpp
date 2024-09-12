@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <mutex>
+#include "MSTFactory.cpp"
 
 using namespace std;
 
@@ -25,6 +26,10 @@ int n = 0, m = 0; // Number of vertices and edges
 vector<Edge> edges; // List of edges
 vector<vector<Edge>> adj; // Adjacency list representation of the graph
 mutex graphMutex; // Mutex for thread safety
+
+// Function prototypes (ensure they are defined or included)
+vector<pair<int, int>> prim(int n, const vector<vector<Edge>>& adj);
+vector<Edge> kruskal(int n, vector<Edge>& edges);
 
 
 void handleClient(int clientSocket) {
