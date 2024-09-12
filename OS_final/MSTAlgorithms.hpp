@@ -15,21 +15,21 @@ struct Edge {
 class MSTAlgorithm {
 public:
     virtual ~MSTAlgorithm() = default; // Virtual destructor for proper cleanup
-    virtual std::vector<std::pair<int, int>> compute(int n, const std::vector<std::vector<Edge>>& adj) = 0;
+    virtual std::vector<std::pair<int, int>> play_mst(int n, const std::vector<std::vector<Edge>>& adj) = 0;
 };
 
 
 // Implementation of Prim's algorithm for MST
 class PrimAlgorithm : public MSTAlgorithm {
 public:
-    std::vector<std::pair<int, int>> compute(int n, const std::vector<std::vector<Edge>>& adj) override;
+    std::vector<std::pair<int, int>> play_mst(int n, const std::vector<std::vector<Edge>>& adj) override;
 };
 
 
 // Implementation of Kruskal's algorithm for MST
 class KruskalAlgorithm : public MSTAlgorithm {
 public:
-    std::vector<std::pair<int, int>> compute(int n, const std::vector<std::vector<Edge>>& adj) override;
+    std::vector<std::pair<int, int>> play_mst(int n, const std::vector<std::vector<Edge>>& adj) override;
 };
 
 

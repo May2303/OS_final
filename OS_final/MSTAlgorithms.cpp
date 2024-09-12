@@ -5,12 +5,12 @@
 
 
 // Implementation of Prim's algorithm for MST
-std::vector<std::pair<int, int>> PrimAlgorithm::compute(int n, const std::vector<std::vector<Edge>>& adj) {
+std::vector<std::pair<int, int>> PrimAlgorithm::play_mst(int n, const std::vector<std::vector<Edge>>& adj) {
     return prim(n, adj); // Call the Prim's algorithm function defined elsewhere
 }
 
 // Implementation of Kruskal's algorithm for MST
-std::vector<std::pair<int, int>> KruskalAlgorithm::compute(int n, const std::vector<std::vector<Edge>>& adj) {
+std::vector<std::pair<int, int>> KruskalAlgorithm::play_mst(int n, const std::vector<std::vector<Edge>>& adj) {
     std::vector<Edge> edgeList;
 
     // Convert adjacency list to a list of edges
@@ -22,7 +22,7 @@ std::vector<std::pair<int, int>> KruskalAlgorithm::compute(int n, const std::vec
         }
     }
 
-    // Compute MST using Kruskal's algorithm
+    // play_mst MST using Kruskal's algorithm
     std::vector<Edge> mstEdges = kruskal(n, edgeList);
 
     // Convert edge list to a list of pairs for the result
