@@ -1,3 +1,32 @@
+#include <iostream>
+#include <vector>
+#include <list>
+#include <stack>
+#include <algorithm>
+#include <thread>
+#include <sstream>
+#include <cstring>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <mutex>
+
+using namespace std;
+
+// Define Edge structure
+struct Edge {
+    int u, v, weight;
+};
+
+// Global variables (consider thread safety if using multiple threads)
+
+int n = 0, m = 0; // Number of vertices and edges
+vector<Edge> edges; // List of edges
+vector<vector<Edge>> adj; // Adjacency list representation of the graph
+mutex graphMutex; // Mutex for thread safety
+
+
 void handleClient(int clientSocket) {
     char buffer[1024] = {0}; // Buffer to read client data
     string command; // Command from client
