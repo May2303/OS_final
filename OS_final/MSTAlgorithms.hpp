@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <memory>
+using namespace std;
+
 
 
 // Define the Edge structure
@@ -43,5 +45,7 @@ int totalMSTWeight(const std::vector<Edge>& mstEdges);
 int longestDistance(const std::vector<Edge>& mstEdges, int n);
 double averageDistance(const std::vector<std::vector<Edge>>& adj, int n);
 int shortestMSTDistance(int u, int v, const std::vector<Edge>& mstEdges, int n);
+vector<vector<Edge>> buildAdjacencyList(const vector<Edge>& mstEdges, int n);
+void dfs(int node, const vector<vector<Edge>>& adj, vector<bool>& visited, vector<int>& dist, int& farthestNode, int& maxDist);
 
 #endif // MSTALGORITHMS_H

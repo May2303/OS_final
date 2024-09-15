@@ -4,6 +4,10 @@
 #include <queue>
 #include <cassert>
 #include "MSTAlgorithms.hpp"
+#include <iostream>
+#include <ostream>
+
+
 
 using namespace std;
 
@@ -16,41 +20,42 @@ int totalMSTWeight(const vector<Edge>& mstEdges) {
     return totalWeight;
 }
 
-// Function to build an adjacency list from MST edges
 vector<vector<Edge>> buildAdjacencyList(const vector<Edge>& mstEdges, int n) {
-    vector<vector<Edge>> adj(n + 1);
+    vector<vector<Edge>> adj(n + 1); // +1 because nodes are 1-indexed
     for (const Edge& e : mstEdges) {
-        adj[e.u].push_back({e.v, e.weight});
-        adj[e.v].push_back({e.u, e.weight});
+        adj[e.u].push_back(e); // Add edge from u to v
+        // For directed graphs, do not add the reverse edge
+        // adj[e.v].push_back({e.u, e.weight}); // Add reverse edge if undirected
     }
     return adj;
 }
 
+
+
 // Helper function to perform DFS and find the longest path
-void dfs(int u, const vector<vector<Edge>>& adj, vector<bool>& visited, vector<int>& dist, int& farthestNode, int& maxDist, int parent = -1) {
-    visited[u] = true;
-    for (const Edge& e : adj[u]) {
-        if (e.v != parent && !visited[e.v]) {
-            dist[e.v] = dist[u] + e.weight;
+void dfs(int node, const vector<vector<Edge>>& adj, vector<bool>& visited, vector<int>& dist, int& farthestNode, int& maxDist) {
+    visited[node] = true;
+    for (const Edge& e : adj[node]) {
+        if (!visited[e.v]) {
+            dist[e.v] = dist[node] + e.weight;
             if (dist[e.v] > maxDist) {
                 maxDist = dist[e.v];
                 farthestNode = e.v;
             }
-            dfs(e.v, adj, visited, dist, farthestNode, maxDist, u);
+            dfs(e.v, adj, visited, dist, farthestNode, maxDist);
         }
     }
 }
 
-// Find the longest distance (diameter) of the MST
 int longestDistance(const vector<Edge>& mstEdges, int n) {
     vector<vector<Edge>> adj = buildAdjacencyList(mstEdges, n);
     vector<bool> visited(n + 1, false);
     vector<int> dist(n + 1, 0);
-    int farthestNode = 0;
+    int farthestNode = 1; // Start from node 1
     int maxDist = 0;
 
-    // Find farthest node from node 0
-    dfs(0, adj, visited, dist, farthestNode, maxDist);
+    // Find the farthest node from node 1
+    dfs(1, adj, visited, dist, farthestNode, maxDist);
 
     // Reset visited and dist arrays
     fill(visited.begin(), visited.end(), false);
@@ -63,15 +68,14 @@ int longestDistance(const vector<Edge>& mstEdges, int n) {
     return maxDist;
 }
 
-// Calculate the average distance between all pairs of vertices
 double averageDistance(const vector<vector<Edge>>& adj, int n) {
     vector<vector<int>> dist(n + 1, vector<int>(n + 1, numeric_limits<int>::max()));
 
     // Initialize distances for direct edges
     for (int i = 1; i <= n; ++i) {
-        dist[i][i] = 0;
+        dist[i][i] = 0; // Distance from a node to itself is zero
         for (const Edge& e : adj[i]) {
-            dist[i][e.v] = e.weight;
+            dist[i][e.v] = e.weight; // Distance from node i to node e.v
         }
     }
 
@@ -92,7 +96,7 @@ double averageDistance(const vector<vector<Edge>>& adj, int n) {
 
     for (int i = 1; i <= n; ++i) {
         for (int j = i + 1; j <= n; ++j) {
-            if (dist[i][j] < numeric_limits<int>::max()) {
+            if (dist[i][j] < numeric_limits<int>::max()) { // Only count reachable pairs
                 totalDistance += dist[i][j];
                 count++;
             }
@@ -107,7 +111,7 @@ int shortestMSTDistance(int u, int v, const vector<Edge>& mstEdges, int n) {
     vector<vector<Edge>> adj = buildAdjacencyList(mstEdges, n);
     vector<int> dist(n + 1, numeric_limits<int>::max());
     vector<bool> visited(n + 1, false);
-    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> pq;
+    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
 
     dist[u] = 0;
     pq.push({0, u});
