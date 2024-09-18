@@ -1,8 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <list>
-#include <stack>
-#include <algorithm>
 #include <thread>
 #include <sstream>
 #include <cstring>
@@ -11,27 +8,25 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <mutex>
-#include "MSTFactory.cpp"
+#include "Graph.hpp" // Include the Graph class header
+#include "MSTFactory.hpp" // Ensure this header is properly defined
+
 
 using namespace std;
 
-// Global variables (consider thread safety if using multiple threads)
-
-int n = 0, m = 0; // Number of vertices and edges
-vector<Edge> edges; // List of edges
-vector<vector<Edge>> adj; // Adjacency list representation of the graph
+Graph* graph; // Pointer to the graph
 mutex graphMutex; // Mutex for thread safety
-
 
 void handleClient(int clientSocket) {
     char buffer[1024] = {0}; // Buffer to read client data
     string command; // Command from client
+     unique_ptr<MSTAlgorithm> algo; // Define algo here
+
 
     while (true) {
         // Read data from the client
         int valread = read(clientSocket, buffer, 1024);
         if (valread <= 0) {
-            // If no data is read or client disconnects, close the socket and return
             cout << "Client disconnected" << endl;
             close(clientSocket);
             return;
@@ -39,16 +34,17 @@ void handleClient(int clientSocket) {
 
         // Null-terminate the buffer to process as a string
         buffer[valread] = '\0';
-        command = buffer;
-        stringstream ss(command);
+        stringstream ss(buffer);
         ss >> command; // Extract the command from the stringstream
 
         if (command == "Newgraph") {
             // Handle initialization of a new graph
-            lock_guard<mutex> lock(graphMutex); // Lock the mutex for thread safety
+            int n, m; // Number of vertices and edges
             ss >> n >> m; // Read the number of vertices and edges
-            edges.clear(); // Clear the existing edge list
-            adj.assign(n + 1, vector<Edge>()); // Resize adjacency list to hold n vertices
+
+            lock_guard<mutex> lock(graphMutex); // Lock the mutex for thread safety
+
+            graph = new Graph(n); // Create a new graph
             cout << "New graph initialized with n = " << n << " and m = " << m << endl;
 
         } else if (command == "MST") {
@@ -56,9 +52,9 @@ void handleClient(int clientSocket) {
             string algoType;
             ss >> algoType; // Read the type of MST algorithm
 
-            auto algo = MSTFactory::createAlgorithm(algoType); // Create the algorithm object
+            // Use the factory to create the algorithm object
+            algo = MSTFactory::createAlgorithm(algoType);
             if (!algo) {
-                // If the algorithm type is invalid, send an error message
                 string error = "Invalid MST algorithm\n";
                 send(clientSocket, error.c_str(), error.length(), 0);
                 continue; // Continue to handle next client request
@@ -67,7 +63,7 @@ void handleClient(int clientSocket) {
             vector<Edge> mstEdges;
             {
                 lock_guard<mutex> lock(graphMutex); // Lock the mutex for thread safety
-                mstEdges = kruskal(n, edges); // Compute the MST using Kruskal's algorithm
+                mstEdges = algo->play_mst(*graph);
             }
 
             // Prepare and send the MST result to the client
@@ -84,9 +80,7 @@ void handleClient(int clientSocket) {
             ss >> u >> v >> w; // Read edge details
             {
                 lock_guard<mutex> lock(graphMutex); // Lock the mutex for thread safety
-                edges.push_back({u, v, w}); // Add edge to edge list
-                adj[u].push_back({v, w}); // Add edge to adjacency list
-                adj[v].push_back({u, w}); // For undirected graph, add edge in both directions
+                graph->addEdge(u, v, w); // Add edge to graph
             }
             cout << "Added new edge: (" << u << ", " << v << ") with weight " << w << endl;
 
@@ -96,14 +90,7 @@ void handleClient(int clientSocket) {
             ss >> u >> v; // Read edge details
             {
                 lock_guard<mutex> lock(graphMutex); // Lock the mutex for thread safety
-                // Remove edge from edge list
-                edges.erase(remove_if(edges.begin(), edges.end(), [u, v](const Edge& e) {
-                    return (e.u == u && e.v == v) || (e.u == v && e.v == u);
-                }), edges.end());
-
-                // Remove edge from adjacency list
-                adj[u].erase(remove_if(adj[u].begin(), adj[u].end(), [v](const Edge& e) { return e.v == v; }), adj[u].end());
-                adj[v].erase(remove_if(adj[v].begin(), adj[v].end(), [u](const Edge& e) { return e.u == u; }), adj[v].end());
+                graph->removeEdge(u, v); // Remove edge from graph
             }
             cout << "Removed edge: (" << u << ", " << v << ")" << endl;
 
@@ -111,24 +98,30 @@ void handleClient(int clientSocket) {
             // Handle GetData command to retrieve and send metrics
             vector<Edge> mstEdges;
             {
-                lock_guard<mutex> lock(graphMutex); // Lock the mutex for thread safety
-                mstEdges = kruskal(n, edges); // Compute the MST
+                lock_guard<mutex> lock(graphMutex);
+                if (algo) { // Check if algo is initialized
+                    mstEdges = algo->play_mst(*graph); // Compute the MST
+                } else {
+                    string error = "MST algorithm not initialized\n";
+                    send(clientSocket, error.c_str(), error.length(), 0);
+                    continue; // Continue to handle the next client request
+                }
             }
-
+            stringstream response;
             // Compute metrics
+       /*         
             int totalWeight = totalMSTWeight(mstEdges);
-            int longestDist = longestDistance(mstEdges, n);
-            double avgDist = averageDistance(adj, n);
-            // Choose specific vertices for distance calculation
+            int longestDist = longestDistance(mstEdges, graph->getNumVertices());
+            double avgDist = averageDistance(graph->getAdjacencyList(), graph->getNumVertices());
             int u = 1, v = 2; // Example vertices; modify as needed
-            int shortestDist = shortestMSTDistance(u, v, mstEdges, n);
+            int shortestDist = shortestMSTDistance(u, v, mstEdges, graph->getNumVertices());
 
             // Prepare and send the results to the client
-            stringstream response;
             response << "Total weight of MST: " << totalWeight << "\n";
             response << "Longest distance in MST: " << longestDist << "\n";
             response << "Average distance between vertices: " << avgDist << "\n";
             response << "Shortest distance between vertices " << u << " and " << v << " in MST: " << shortestDist << "\n";
+*/
 
             send(clientSocket, response.str().c_str(), response.str().length(), 0);
 
@@ -138,4 +131,53 @@ void handleClient(int clientSocket) {
             send(clientSocket, error.c_str(), error.length(), 0);
         }
     }
+}
+
+int main() {
+    int serverSocket, clientSocket;
+    struct sockaddr_in serverAddr, clientAddr;
+    socklen_t addrLen = sizeof(clientAddr);
+
+    // Create socket
+    if ((serverSocket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        cerr << "Socket creation error" << endl;
+        return -1;
+    }
+
+    // Set up the server address
+    serverAddr.sin_family = AF_INET; // IPv4
+    serverAddr.sin_addr.s_addr = INADDR_ANY; // Any address
+    serverAddr.sin_port = htons(8080); // Port number
+
+    // Bind the socket to the address
+    if (bind(serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
+        cerr << "Bind failed" << endl;
+        return -1;
+    }
+
+    // Start listening for incoming connections
+    if (listen(serverSocket, 3) < 0) {
+        cerr << "Listen failed" << endl;
+        return -1;
+    }
+
+    cout << "Server listening on port 8080..." << endl;
+
+    while (true) {
+        // Accept a new client connection
+        clientSocket = accept(serverSocket, (struct sockaddr *)&clientAddr, &addrLen);
+        if (clientSocket < 0) {
+            cerr << "Accept failed" << endl;
+            continue;
+        }
+
+        cout << "New client connected" << endl;
+
+        // Spawn a new thread to handle the client
+        thread(handleClient, clientSocket).detach();
+    }
+
+    // Cleanup
+    close(serverSocket);
+    return 0;
 }

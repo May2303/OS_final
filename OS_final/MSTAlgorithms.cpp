@@ -4,12 +4,12 @@
 #include <algorithm> // For std::min, std::max
 
 // Implementation of Prim's algorithm for MST
-std::vector<std::pair<int, int>> PrimAlgorithm::play_mst(const Graph& graph) {
+std::vector<Edge> PrimAlgorithm::play_mst(const Graph& graph) {
     return prim(graph); // Call the Prim's algorithm function defined elsewhere
 }
 
 // Implementation of Kruskal's algorithm for MST
-std::vector<std::pair<int, int>> KruskalAlgorithm::play_mst(const Graph& graph) {
+std::vector<Edge> KruskalAlgorithm::play_mst(const Graph& graph) {
     std::vector<Edge> edgeList;
 
     // Convert adjacency list to a list of edges
@@ -28,7 +28,7 @@ std::vector<std::pair<int, int>> KruskalAlgorithm::play_mst(const Graph& graph) 
     std::vector<Edge> mstEdges = kruskal(graph);
 
     // Convert edge list to a list of pairs for the result
-    std::vector<std::pair<int, int>> mstPairs;
+    std::vector<Edge> mstPairs;
     for (const Edge& e : mstEdges) {
         mstPairs.emplace_back(e.u, e.v);
     }
@@ -36,7 +36,7 @@ std::vector<std::pair<int, int>> KruskalAlgorithm::play_mst(const Graph& graph) 
 }
 
 // Implementation of Prim's algorithm
-std::vector<std::pair<int, int>> prim(const Graph& graph) {
+std::vector<Edge> prim(const Graph& graph) {
     int n = graph.getNumVertices();
     auto adj = graph.getAdjacencyList();
     // Your Prim's algorithm implementation
