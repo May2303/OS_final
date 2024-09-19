@@ -8,8 +8,9 @@ void Pipeline::computeMST(const std::string& algorithmType) {
         auto mstPairs = mstAlgorithm->play_mst(graph);
         // Convert pairs to edges
         mstEdges.clear();
-        for (const auto& pair : mstPairs) {
-            mstEdges.push_back({pair.first, pair.second, 0}); // Assuming weight will be updated later
+
+        for (const Edge& edge : mstPairs) {
+             mstEdges.push_back({edge.u, edge.v, edge.weight}); // Use Edge members directly
         }
     }
 }
