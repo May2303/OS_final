@@ -2,9 +2,7 @@
 #include <queue>            
 #include <vector>          
 #include <limits>     
-
-// Define the compute method for Prim's algorithm
-std::vector<Edge> PrimAlgorithm::play_mst(const Graph& graph) {
+std::vector<Edge> prim(const Graph& graph){
     int n = graph.getNumVertices(); // Get the number of vertices from the graph
     const auto& adj = graph.getAdjacencyList(); // Get the adjacency list
 

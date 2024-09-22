@@ -29,8 +29,8 @@ void unionSets(int u, int v, std::vector<int>& parent, std::vector<int>& rank) {
     }
 }
 
-// Define the compute method for Kruskal's algorithm
-std::vector<Edge> KruskalAlgorithm::play_mst(const Graph& graph) {
+// Kruskal's algorithm implementation
+std::vector<Edge> kruskal(const Graph& graph) {
     std::vector<Edge> edgeList;
     const auto& adj = graph.getAdjacencyList();
     int n = graph.getNumVertices();
