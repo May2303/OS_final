@@ -2,24 +2,34 @@
 #define PIPELINE_HPP
 
 #include <memory>
+#include <sstream>
 #include "Graph.hpp"
 #include "MSTAlgorithms.hpp"
-#include "MetricCalculator.cpp"
+#include "MetricCalculator.hpp"
 #include "MSTFactory.hpp"
+#include <future>
+#include <thread>
+#include <vector>
+#include <mutex>
+#include <iostream>
+
+
 
 class Pipeline {
 public:
     Pipeline(const Graph& graph);
     
-    // השלב הראשון: חישוב ה-MST
+    // Stage for computing the MST
     void computeMST(const std::string& algorithmType);
     
-    // השלב השני: חישוב המדדים
+    // Stage for calculating metrics
     void calculateMetrics();
     
-    // שלב לוקח את התוצאה ומחזיר אותה
+    // Get results as a string
     std::string getResults() const;
-    
+
+    void process(const std::string& algorithmType);
+
 private:
     Graph graph;
     std::unique_ptr<MSTAlgorithm> mstAlgorithm;
@@ -28,8 +38,16 @@ private:
     int longestDist;
     double avgDist;
     int shortestDist;
-    
-    void updateMetrics();
+
+     // Mutex for thread safety
+    mutable std::mutex mtx;
+
+    void calculateTotalWeight();
+    void calculateLongestDistance();
+    void calculateAverageDistance();
+    void calculateShortestDistance(int u, int v);
+        
+    //void updateMetrics();
 };
 
 #endif // PIPELINE_HPP

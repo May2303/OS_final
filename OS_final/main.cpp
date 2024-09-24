@@ -8,14 +8,21 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <mutex>
-#include "Graph.hpp" // Include the Graph class header
-#include "MSTFactory.hpp" // Ensure this header is properly defined
+//#include "Graph.hpp" // Include the Graph class header
+//#include "MSTFactory.hpp" // Ensure this header is properly defined
+#include "ActiveObjectImpl.hpp"
+#include "LeaderFollowerMetrics.hpp"
+//#include "MetricCalculator.hpp"
+
 
 
 using namespace std;
 
 Graph* graph; // Pointer to the graph
 mutex graphMutex; // Mutex for thread safety
+std::unique_ptr<ActiveObject> activeObject; // Active Object instance
+std::unique_ptr<LeaderFollowerMetrics> lfThreadPool; // Leader-Follower pool instance
+bool usePipeline = true; // Default to using pipeline pattern
 
 void handleClient(int clientSocket) {
     char buffer[1024] = {0}; // Buffer to read client data
@@ -47,34 +54,83 @@ void handleClient(int clientSocket) {
             graph = new Graph(n); // Create a new graph
             cout << "New graph initialized with n = " << n << " and m = " << m << endl;
 
+        } else if (command == "SetPattern") {
+            std::string pattern;
+            ss >> pattern;
+            if (pattern == "Pipeline") {
+                usePipeline = true;
+                std::string response = "Using pipeline pattern.\n";
+                send(clientSocket, response.c_str(), response.length(), 0);
+            } else if (pattern == "LF") {
+                usePipeline = false;
+                std::string response = "Using Leader-Follower pattern.\n";
+                send(clientSocket, response.c_str(), response.length(), 0);
+            }
+
+        // } else if (command == "MST") {
+        //     // Handle Minimum Spanning Tree computation
+        //     string algoType;
+        //     ss >> algoType; // Read the type of MST algorithm
+
+        //     // Use the factory to create the algorithm object
+        //     algo = MSTFactory::createAlgorithm(algoType);
+        //     if (!algo) {
+        //         string error = "Invalid MST algorithm\n";
+        //         send(clientSocket, error.c_str(), error.length(), 0);
+        //         continue; // Continue to handle next client request
+        //     }
+
+        //     vector<Edge> mstEdges;
+        //     {
+        //         lock_guard<mutex> lock(graphMutex); // Lock the mutex for thread safety
+        //         mstEdges = algo->play_mst(*graph);
+        //     }
+
+        //     // Prepare and send the MST result to the client
+        //     stringstream response;
+        //     response << "mst:\n";
+        //     for (const auto& edge : mstEdges) {
+        //         response << edge.u << " " << edge.v << " " << edge.weight << "\n";
+        //     }
+        //     send(clientSocket, response.str().c_str(), response.str().length(), 0);
+
+        // } 
         } else if (command == "MST") {
             // Handle Minimum Spanning Tree computation
-            string algoType;
+            std::string algoType;
             ss >> algoType; // Read the type of MST algorithm
 
             // Use the factory to create the algorithm object
             algo = MSTFactory::createAlgorithm(algoType);
             if (!algo) {
-                string error = "Invalid MST algorithm\n";
+                std::string error = "Invalid MST algorithm\n";
                 send(clientSocket, error.c_str(), error.length(), 0);
-                continue; // Continue to handle next client request
+                continue; // Continue to handle the next client request
             }
 
-            vector<Edge> mstEdges;
-            {
-                lock_guard<mutex> lock(graphMutex); // Lock the mutex for thread safety
-                mstEdges = algo->play_mst(*graph);
-            }
+            if (usePipeline) { 
 
-            // Prepare and send the MST result to the client
-            stringstream response;
-            response << "mst:\n";
-            for (const auto& edge : mstEdges) {
-                response << edge.u << " " << edge.v << " " << edge.weight << "\n";
-            }
-            send(clientSocket, response.str().c_str(), response.str().length(), 0);
+                activeObject = std::make_unique<ActiveObjectImpl>(*graph);
+                // Check if activeObject is initialized
+                if (!activeObject) {
+                    std::string error = "ActiveObject is not initialized.\n";
+                    send(clientSocket, error.c_str(), error.length(), 0);
+                    continue; // Handle next request
+                }
+               
 
-        } else if (command == "Newedge") {
+                // Use the pipeline active object to queue MST computation
+                activeObject->computeMST(algoType); // Queue the request in pipeline
+                std::string response = "MST request is being processed using the Pipeline.\n";
+                send(clientSocket, response.c_str(), response.length(), 0);
+
+            } else {
+                // Use the Leader-Follower thread pool to compute the MST
+                lfThreadPool->computeMST(algoType); // Handle the request in the LF thread pool
+                std::string response = "MST request is being processed using Leader-Follower.\n";
+                send(clientSocket, response.c_str(), response.length(), 0);
+            }
+        }else if (command == "Newedge") {
             // Handle adding a new edge
             int u, v, w;
             ss >> u >> v >> w; // Read edge details
@@ -124,7 +180,16 @@ void handleClient(int clientSocket) {
 */
 
             send(clientSocket, response.str().c_str(), response.str().length(), 0);
-
+        } else if (command == "GetResults") {
+            std::string results;
+            if (usePipeline) {
+                results = activeObject->getResults(); // Get results from Active Object
+            } else {
+                results = lfThreadPool->getResults(); // Get results from Leader-Follower
+            }
+            send(clientSocket, results.c_str(), results.length(), 0);
+            
+        
         } else {
             // Handle invalid command
             string error = "Invalid command\n";

@@ -3,19 +3,11 @@
 #include <limits>
 #include <queue>
 #include <cassert>
-#include "MSTAlgorithms.hpp"
+#include "MetricCalculator.hpp"
 #include <iostream>
 #include <ostream>
 
 #include <string>  
-
-class metricsCalculator {
-public:
-    virtual void calculateMetrics() = 0;
-    virtual std::string getResults() const = 0;
-    virtual ~metricsCalculator() = default;
-};
-
 
 using namespace std;
 
