@@ -125,6 +125,12 @@ void handleClient(int clientSocket) {
                 send(clientSocket, response.c_str(), response.length(), 0);
 
             } else {
+                lfThreadPool= std::make_unique<LeaderFollowerMetrics>(*graph);
+                if (!lfThreadPool) {
+                    std::cerr << "Error: LF Thread Pool not initialized" << std::endl;
+                    return;
+                }
+
                 // Use the Leader-Follower thread pool to compute the MST
                 lfThreadPool->computeMST(algoType); // Handle the request in the LF thread pool
                 std::string response = "MST request is being processed using Leader-Follower.\n";
@@ -150,36 +156,6 @@ void handleClient(int clientSocket) {
             }
             cout << "Removed edge: (" << u << ", " << v << ")" << endl;
 
-        } else if (command == "GetData") {
-            // Handle GetData command to retrieve and send metrics
-            vector<Edge> mstEdges;
-            {
-                lock_guard<mutex> lock(graphMutex);
-                if (algo) { // Check if algo is initialized
-                    mstEdges = algo->play_mst(*graph); // Compute the MST
-                } else {
-                    string error = "MST algorithm not initialized\n";
-                    send(clientSocket, error.c_str(), error.length(), 0);
-                    continue; // Continue to handle the next client request
-                }
-            }
-            stringstream response;
-            // Compute metrics
-       /*         
-            int totalWeight = totalMSTWeight(mstEdges);
-            int longestDist = longestDistance(mstEdges, graph->getNumVertices());
-            double avgDist = averageDistance(graph->getAdjacencyList(), graph->getNumVertices());
-            int u = 1, v = 2; // Example vertices; modify as needed
-            int shortestDist = shortestMSTDistance(u, v, mstEdges, graph->getNumVertices());
-
-            // Prepare and send the results to the client
-            response << "Total weight of MST: " << totalWeight << "\n";
-            response << "Longest distance in MST: " << longestDist << "\n";
-            response << "Average distance between vertices: " << avgDist << "\n";
-            response << "Shortest distance between vertices " << u << " and " << v << " in MST: " << shortestDist << "\n";
-*/
-
-            send(clientSocket, response.str().c_str(), response.str().length(), 0);
         } else if (command == "GetResults") {
             std::string results;
             if (usePipeline) {
