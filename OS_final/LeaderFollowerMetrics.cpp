@@ -92,7 +92,7 @@ void LeaderFollowerMetrics::calculateLongestDistance() {
 }
 
 void LeaderFollowerMetrics::calculateAverageDistance() {
-    avgDist = averageDistance(graph.getAdjacencyList(), graph.getNumVertices());
+    avgDist = averageDistance(mstEdges, graph.getNumVertices());
 }
 
 void LeaderFollowerMetrics::calculateShortestDistance(int u, int v) {
