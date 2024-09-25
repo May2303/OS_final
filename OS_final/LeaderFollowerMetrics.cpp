@@ -21,6 +21,9 @@ void LeaderFollowerMetrics::enqueueTask(const std::function<void()>& task) {
 }
 
 void LeaderFollowerMetrics::computeMST(const std::string& algoType) {
+    // Log the start of the MST computation
+    std::cout << "Leader-Follower: Starting MST computation using " << algoType << std::endl;
+
     // Create an MST algorithm instance using the factory
     std::unique_ptr<MSTAlgorithm> algo = MSTFactory::createAlgorithm(algoType);
     if (!algo) {
@@ -30,16 +33,38 @@ void LeaderFollowerMetrics::computeMST(const std::string& algoType) {
 
     {
         // Lock the graph to ensure thread-safety during MST calculation
+        //std::cout << "Leader-Follower: Locking the graph for MST computation." << std::endl;
         std::lock_guard<std::mutex> lock(mtx);
         mstEdges = algo->play_mst(graph);  // Compute the MST
+        std::cout << "Leader-Follower: MST computation completed." << std::endl;
     }
 
     // Once the MST is computed, enqueue metric calculations
-    enqueueTask([this]() { calculateTotalWeight(); });
-    enqueueTask([this]() { calculateLongestDistance(); });
-    enqueueTask([this]() { calculateAverageDistance(); });
-    enqueueTask([this]() { calculateShortestDistance(1, 2); });  // Example shortest distance
+    std::cout << "Leader-Follower: Enqueuing metric calculations." << std::endl;
+    enqueueTask([this]() { 
+        std::cout << "Leader-Follower: Calculating total MST weight." << std::endl;
+        calculateTotalWeight(); 
+        std::cout << "Leader-Follower: Total weight calculation completed." << std::endl;
+    });
+    enqueueTask([this]() { 
+        std::cout << "Leader-Follower: Calculating longest distance in MST." << std::endl;
+        calculateLongestDistance(); 
+        std::cout << "Leader-Follower: Longest distance calculation completed." << std::endl;
+    });
+    enqueueTask([this]() { 
+        std::cout << "Leader-Follower: Calculating average distance in MST." << std::endl;
+        calculateAverageDistance(); 
+        std::cout << "Leader-Follower: Average distance calculation completed." << std::endl;
+    });
+    enqueueTask([this]() { 
+        std::cout << "Leader-Follower: Calculating shortest distance in MST." << std::endl;
+        calculateShortestDistance(1, 2);  // Example shortest distance
+        std::cout << "Leader-Follower: Shortest distance calculation completed." << std::endl;
+    });
+
+    std::cout << "Leader-Follower: All tasks have been enqueued." << std::endl;
 }
+
 
 
 void LeaderFollowerMetrics::workerThread() {
@@ -76,6 +101,13 @@ void LeaderFollowerMetrics::calculateShortestDistance(int u, int v) {
 
 std::string LeaderFollowerMetrics::getResults() const {
     std::stringstream ss;
+
+    // Print the MST edges
+    ss << "MST Edges:\n";
+    for (const auto& edge : mstEdges) {
+        ss << "Edge from " << edge.u << " to " << edge.v << " with weight " << edge.weight << "\n";
+    }
+
     ss << "Total weight of MST: " << totalWeight << "\n";
     ss << "Longest distance in MST: " << longestDist << "\n";
     ss << "Average distance between vertices: " << avgDist << "\n";

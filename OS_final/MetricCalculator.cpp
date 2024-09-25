@@ -67,25 +67,14 @@ int longestDistance(const vector<Edge>& mstEdges, int n) {
     return maxDist;
 }
 
-double averageDistance(const vector<vector<Edge>>& adj, int n) {
+double averageDistance(const vector<Edge>& adj, int n) {
     double totalDistance = 0;
     int count = 0;
-
-    // Convert the adjacency list back to edge format to reuse in shortestMSTDistance
-    vector<Edge> mstEdges;
-    for (int i = 1; i <= n; ++i) {
-        for (const Edge& e : adj[i]) {
-            // Since it's an undirected graph, avoid adding both (i, e.v) and (e.v, i)
-            if (i < e.v) {
-                mstEdges.push_back({i, e.v, e.weight});
-            }
-        }
-    }
 
     // Calculate the shortest distance between every pair of vertices (i, j) where i < j
     for (int i = 1; i <= n; ++i) {
         for (int j = i + 1; j <= n; ++j) {
-            int shortestDist = shortestMSTDistance(i, j, mstEdges, n);
+            int shortestDist = shortestMSTDistance(i, j, adj, n);  // Directly use adj (MST edge list)
             if (shortestDist < numeric_limits<int>::max()) {
                 totalDistance += shortestDist;
                 count++;
@@ -95,6 +84,7 @@ double averageDistance(const vector<vector<Edge>>& adj, int n) {
 
     return count == 0 ? 0 : totalDistance / count;
 }
+
 
 
 int shortestMSTDistance(int u, int v, const vector<Edge>& mstEdges, int n) {

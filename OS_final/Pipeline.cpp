@@ -66,6 +66,13 @@ void Pipeline::calculateMetrics() {
 std::string Pipeline::getResults() const {
     std::lock_guard<std::mutex> lock(mtx);
     std::stringstream ss;
+    
+    // Print the MST edges
+    ss << "MST Edges:\n";
+    for (const auto& edge : mstEdges) {
+        ss << "Edge from " << edge.u << " to " << edge.v << " with weight " << edge.weight << "\n";
+    }
+    
     ss << "Total weight of MST: " << totalWeight << "\n";
     ss << "Longest distance in MST: " << longestDist << "\n";
     ss << "Average distance between vertices: " << avgDist << "\n";
@@ -86,7 +93,7 @@ void Pipeline::calculateLongestDistance() {
 }
 
 void Pipeline::calculateAverageDistance() {
-    double localAvgDist = averageDistance(graph.getAdjacencyList(), graph.getNumVertices());
+    double localAvgDist = averageDistance(mstEdges, graph.getNumVertices());
     std::lock_guard<std::mutex> lock(mtx);
     avgDist = localAvgDist;
 }

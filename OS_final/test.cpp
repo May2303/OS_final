@@ -1,6 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
-#include "MSTAlgorithms.hpp"
+#include "MetricCalculator.hpp"
+
 #include <vector>
 #include <memory>
 #include <algorithm>
@@ -177,27 +178,22 @@ TEST_CASE("Testing shortestMSTDistance function") {
     vector<Edge> mst5 = {{1, 2, -10}, {2, 3, -20}};
     CHECK(shortestMSTDistance(1, 3, mst5, 3) == -30);
 }
-
 TEST_CASE("Testing averageDistance function with shortestMSTDistance") {
     // Test case 1: Simple connected graph
     vector<Edge> edges1 = {{1, 2, 5}, {2, 3, 10}, {1, 4, 15}};
-    vector<vector<Edge>> adj1 = buildAdjacencyList(edges1, 4);
-    CHECK(averageDistance(adj1, 4) == doctest::Approx(15.8333)); // (5 + 15 + 15 + 10 + 20 + 30) / 6 = 15.8333
+    CHECK(averageDistance(edges1, 4) == doctest::Approx(15.8333)); // (5 + 15 + 15 + 10 + 20 + 30) / 6 = 15.8333
 
     // Test case 3: Graph with zero-weight edges
     vector<Edge> edges3 = {{1, 2, 0}, {2, 3, 0}};
-    vector<vector<Edge>> adj3 = buildAdjacencyList(edges3, 3);
-    CHECK(averageDistance(adj3, 3) == doctest::Approx(0.0)); // All distances are zero
+    CHECK(averageDistance(edges3, 3) == doctest::Approx(0.0)); // All distances are zero
 
     // Test case 4: Graph with negative weights (ensure handling of negative-weight edges)
     vector<Edge> edges4 = {{1, 2, -2}, {2, 3, -3}};
-    vector<vector<Edge>> adj4 = buildAdjacencyList(edges4, 3);
-    CHECK(averageDistance(adj4, 3) == doctest::Approx(-3.33333)); // Expected average distance
+    CHECK(averageDistance(edges4, 3) == doctest::Approx(-3.33333)); // Expected average distance
 
     // Test case 5: Single node graph
     vector<Edge> edges5; // No edges, only 1 node
-    vector<vector<Edge>> adj5 = buildAdjacencyList(edges5, 1);
-    CHECK(averageDistance(adj5, 1) == 0.0); // No distances to calculate, average is 0
+    CHECK(averageDistance(edges5, 1) == 0.0); // No distances to calculate, average is 0
 
     // Test case 6: Complex graph with 15 edges
     vector<Edge> edges6 = {
@@ -205,6 +201,5 @@ TEST_CASE("Testing averageDistance function with shortestMSTDistance") {
         {5, 7, 8}, {6, 8, 9}, {7, 9, 10}, {8, 10, 11}, {9, 11, 12}, 
         {10, 12, 13}, {11, 13, 14}, {12, 14, 15}, {13, 15, 16}, {14, 16, 17}
     };
-    vector<vector<Edge>> adj6 = buildAdjacencyList(edges6, 16);
-    CHECK(averageDistance(adj6, 16) == doctest::Approx(48.0583)); // Expected value based on complex structure
+    CHECK(averageDistance(edges6, 16) == doctest::Approx(48.0583)); // Expected value based on complex structure
 }
