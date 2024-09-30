@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <vector>
 #include <thread>
@@ -8,13 +9,14 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <mutex>
+#include <sys/select.h>
+#include <chrono>
+#include <atomic>
 //#include "Graph.hpp" // Include the Graph class header
 //#include "MSTFactory.hpp" // Ensure this header is properly defined
 #include "ActiveObjectImpl.hpp"
 #include "LeaderFollowerMetrics.hpp"
 //#include "MetricCalculator.hpp"
-
-
 
 using namespace std;
 
@@ -23,12 +25,14 @@ mutex graphMutex; // Mutex for thread safety
 std::unique_ptr<ActiveObject> activeObject; // Active Object instance
 std::unique_ptr<LeaderFollowerMetrics> lfThreadPool; // Leader-Follower pool instance
 bool usePipeline = true; // Default to using pipeline pattern
+atomic<bool> serverActive(true); // Atomic flag for server status
+std::chrono::steady_clock::time_point lastActivity; // Use regular time_point
+std::mutex lastActivityMutex; // Mutex to protect access to lastActivity
 
-void handleClient(int clientSocket) {
+-void handleClient(int clientSocket) {
     char buffer[1024] = {0}; // Buffer to read client data
     string command; // Command from client
-     unique_ptr<MSTAlgorithm> algo; // Define algo here
-
+    unique_ptr<MSTAlgorithm> algo; // Define algo here
 
     while (true) {
         // Read data from the client
@@ -44,13 +48,18 @@ void handleClient(int clientSocket) {
         stringstream ss(buffer);
         ss >> command; // Extract the command from the stringstream
 
+        // Update lastActivity time here, as a message has been received
+        {
+            lock_guard<mutex> lock(lastActivityMutex);
+            lastActivity = std::chrono::steady_clock::now();
+        }
+
         if (command == "Newgraph") {
             // Handle initialization of a new graph
             int n, m; // Number of vertices and edges
             ss >> n >> m; // Read the number of vertices and edges
 
             lock_guard<mutex> lock(graphMutex); // Lock the mutex for thread safety
-
             graph = new Graph(n); // Create a new graph
             cout << "New graph initialized with n = " << n << " and m = " << m << endl;
 
@@ -67,40 +76,11 @@ void handleClient(int clientSocket) {
                 send(clientSocket, response.c_str(), response.length(), 0);
             }
 
-        // } else if (command == "MST") {
-        //     // Handle Minimum Spanning Tree computation
-        //     string algoType;
-        //     ss >> algoType; // Read the type of MST algorithm
-
-        //     // Use the factory to create the algorithm object
-        //     algo = MSTFactory::createAlgorithm(algoType);
-        //     if (!algo) {
-        //         string error = "Invalid MST algorithm\n";
-        //         send(clientSocket, error.c_str(), error.length(), 0);
-        //         continue; // Continue to handle next client request
-        //     }
-
-        //     vector<Edge> mstEdges;
-        //     {
-        //         lock_guard<mutex> lock(graphMutex); // Lock the mutex for thread safety
-        //         mstEdges = algo->play_mst(*graph);
-        //     }
-
-        //     // Prepare and send the MST result to the client
-        //     stringstream response;
-        //     response << "mst:\n";
-        //     for (const auto& edge : mstEdges) {
-        //         response << edge.u << " " << edge.v << " " << edge.weight << "\n";
-        //     }
-        //     send(clientSocket, response.str().c_str(), response.str().length(), 0);
-
-        // } 
         } else if (command == "MST") {
             // Handle Minimum Spanning Tree computation
             std::string algoType;
             ss >> algoType; // Read the type of MST algorithm
 
-            // Use the factory to create the algorithm object
             algo = MSTFactory::createAlgorithm(algoType);
             if (!algo) {
                 std::string error = "Invalid MST algorithm\n";
@@ -109,34 +89,26 @@ void handleClient(int clientSocket) {
             }
 
             if (usePipeline) { 
-
                 activeObject = std::make_unique<ActiveObjectImpl>(*graph);
-                // Check if activeObject is initialized
                 if (!activeObject) {
                     std::string error = "ActiveObject is not initialized.\n";
                     send(clientSocket, error.c_str(), error.length(), 0);
-                    continue; // Handle next request
+                    continue;
                 }
-               
-
-                // Use the pipeline active object to queue MST computation
                 activeObject->computeMST(algoType); // Queue the request in pipeline
                 std::string response = "MST request is being processed using the Pipeline.\n";
                 send(clientSocket, response.c_str(), response.length(), 0);
-
             } else {
-                lfThreadPool= std::make_unique<LeaderFollowerMetrics>(*graph);
+                lfThreadPool = std::make_unique<LeaderFollowerMetrics>(*graph);
                 if (!lfThreadPool) {
                     std::cerr << "Error: LF Thread Pool not initialized" << std::endl;
                     return;
                 }
-
-                // Use the Leader-Follower thread pool to compute the MST
                 lfThreadPool->computeMST(algoType); // Handle the request in the LF thread pool
                 std::string response = "MST request is being processed using Leader-Follower.\n";
                 send(clientSocket, response.c_str(), response.length(), 0);
             }
-        }else if (command == "Newedge") {
+        } else if (command == "Newedge") {
             // Handle adding a new edge
             int u, v, w;
             ss >> u >> v >> w; // Read edge details
@@ -164,10 +136,12 @@ void handleClient(int clientSocket) {
                 results = lfThreadPool->getResults(); // Get results from Leader-Follower
             }
             send(clientSocket, results.c_str(), results.length(), 0);
-            
-        
+
+        } else if (command == "Exit") {
+            cout << "Client disconnected" << endl;
+            close(clientSocket);
+            exit(0);
         } else {
-            // Handle invalid command
             string error = "Invalid command\n";
             send(clientSocket, error.c_str(), error.length(), 0);
         }
@@ -178,6 +152,8 @@ int main() {
     int serverSocket, clientSocket;
     struct sockaddr_in serverAddr, clientAddr;
     socklen_t addrLen = sizeof(clientAddr);
+    fd_set readfds;
+    struct timeval timeout;
 
     // Create socket
     if ((serverSocket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -204,18 +180,50 @@ int main() {
 
     cout << "Server listening on port 8080..." << endl;
 
-    while (true) {
-        // Accept a new client connection
-        clientSocket = accept(serverSocket, (struct sockaddr *)&clientAddr, &addrLen);
-        if (clientSocket < 0) {
-            cerr << "Accept failed" << endl;
-            continue;
+    while (serverActive) {
+        // Set up file descriptor set for select()
+        FD_ZERO(&readfds);
+        FD_SET(serverSocket, &readfds);
+        timeout.tv_sec = 20;  // 20-second timeout
+        timeout.tv_usec = 0;
+
+        // Monitor the server socket for activity
+        int activity = select(serverSocket + 1, &readfds, nullptr, nullptr, &timeout);
+
+        if (activity < 0 && errno != EINTR) {
+            cerr << "Select error" << endl;
+            break;
         }
 
-        cout << "New client connected" << endl;
+        // Check for timeout (no activity)
+        if (activity == 0) {
+            auto now = std::chrono::steady_clock::now();
+            
+            {
+                std::lock_guard<std::mutex> lock(lastActivityMutex);
+                auto durationSinceLastActivity = std::chrono::duration_cast<std::chrono::seconds>(now - lastActivity).count();
+                if (durationSinceLastActivity >= 20) {
+                    cout << "No activity for 20 seconds. Shutting down server." << endl;
+                    serverActive = false;
+                    break;
+                }
+            }
+        }
 
-        // Spawn a new thread to handle the client
-        thread(handleClient, clientSocket).detach();
+        // Accept new connection if activity is detected
+        if (FD_ISSET(serverSocket, &readfds)) {
+            clientSocket = accept(serverSocket, (struct sockaddr *)&clientAddr, &addrLen);
+            if (clientSocket < 0) {
+                cerr << "Accept failed" << endl;
+                continue;
+            }
+            cout << "New client connected" << endl;
+            {
+                lock_guard<std::mutex> lock(lastActivityMutex);
+                lastActivity = std::chrono::steady_clock::now(); // Update last activity time
+            }
+            thread(handleClient, clientSocket).detach();
+        }
     }
 
     // Cleanup
