@@ -29,7 +29,7 @@ atomic<bool> serverActive(true); // Atomic flag for server status
 std::chrono::steady_clock::time_point lastActivity; // Use regular time_point
 std::mutex lastActivityMutex; // Mutex to protect access to lastActivity
 
--void handleClient(int clientSocket) {
+void handleClient(int clientSocket) {
     char buffer[1024] = {0}; // Buffer to read client data
     string command; // Command from client
     unique_ptr<MSTAlgorithm> algo; // Define algo here

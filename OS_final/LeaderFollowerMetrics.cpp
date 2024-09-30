@@ -2,8 +2,14 @@
 #include <sstream>
 #include <limits>
 #include <vector>
-LeaderFollowerMetrics::LeaderFollowerMetrics(const Graph& graph, int numThreads)
-    : graph(graph), stop(false), totalWeight(0), longestDist(0), avgDist(0), shortestDist(0) 
+
+LeaderFollowerMetrics::LeaderFollowerMetrics(const Graph& graph, int numThreads) :
+    graph(graph), 
+    stop(false), 
+    totalWeight(0), 
+    longestDist(0), 
+    avgDist(0), 
+    shortestDist(0) 
 {
     // Start worker threads without computing the MST
     for (int i = 0; i < numThreads; ++i) {

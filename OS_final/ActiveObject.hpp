@@ -1,15 +1,13 @@
-// ActiveObject.hpp
-#ifndef ACTIVEOBJECT_HPP
-#define ACTIVEOBJECT_HPP
-
-#include <string>
-#include <future>
-
+// Abstract base class for active objects
 class ActiveObject {
 public:
+    // Pure virtual function to compute a Minimum Spanning Tree (MST)
+    // Takes the type of algorithm as a parameter
     virtual void computeMST(const std::string& algorithmType) = 0;
-    virtual std::string getResults() = 0;
-    virtual ~ActiveObject() = default;
-};
 
-#endif // ACTIVEOBJECT_HPP
+    // Pure virtual function to retrieve the results of the computation
+    virtual std::string getResults() = 0;
+
+    // Virtual destructor to ensure proper cleanup of derived classes
+    virtual ~ActiveObject() = default; 
+};

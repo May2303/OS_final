@@ -47,7 +47,6 @@ private:
     void calculateAverageDistance();
     void calculateShortestDistance(int u, int v);
         
-    //void updateMetrics();
 };
 
 #endif // PIPELINE_HPP
